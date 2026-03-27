@@ -4,7 +4,7 @@
 
 <script setup>
 import { onMounted } from 'vue'
-import { useAuthStore } from './stores/authStore'
+import { useAuthStore } from '@/stores/authStore'  // ← ต้องเป็นแบบนี้
 
 const authStore = useAuthStore()
 
