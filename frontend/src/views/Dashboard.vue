@@ -41,6 +41,11 @@
           <pre>{{ debugInfo }}</pre>
         </div>
       </div>
+
+      <button v-if="authStore.isAdmin" @click="goToAdmin" class="admin-btn">
+        👥 Admin Panel
+      </button>
+      
     </div>
   </div>
 </template>
@@ -58,6 +63,10 @@ let intervalId = null
 
 const handleLogout = async () => {
   await authStore.logout()
+}
+
+const goToAdmin = () => {
+  router.push('/admin')
 }
 
 const testRefresh = async () => {
@@ -95,6 +104,16 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.admin-btn {
+  padding: 0.5rem 1rem;
+  background: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-left: 1rem;
+}
+
 .dashboard {
   min-height: 100vh;
   background: #f5f5f5;

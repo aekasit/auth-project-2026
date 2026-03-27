@@ -1,6 +1,7 @@
 C:\Users\aekasit.se\Desktop\auth-project-2026\backend\src\main\java\com\example\auth\AuthApplication.java
 C:\Users\aekasit.se\Desktop\auth-project-2026\backend\src\main\java\com\example\auth\config\RedisConfig.java
 C:\Users\aekasit.se\Desktop\auth-project-2026\backend\src\main\java\com\example\auth\config\SecurityConfig.java
+C:\Users\aekasit.se\Desktop\auth-project-2026\backend\src\main\java\com\example\auth\controller\AdminController.java
 C:\Users\aekasit.se\Desktop\auth-project-2026\backend\src\main\java\com\example\auth\controller\AuthController.java
 C:\Users\aekasit.se\Desktop\auth-project-2026\backend\src\main\java\com\example\auth\controller\UserController.java
 C:\Users\aekasit.se\Desktop\auth-project-2026\backend\src\main\java\com\example\auth\dto\LoginRequest.java

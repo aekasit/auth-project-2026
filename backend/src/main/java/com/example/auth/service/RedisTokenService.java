@@ -327,13 +327,31 @@ public class RedisTokenService {
         }
     }
 
-    public void kickUserSession(String username) {
+    /**
+     * Kick user session
+     *
+     * @return true if user was kicked, false if user not found or already offline
+     */
+    public boolean kickUserSession(String username) {
         log.info("Kicking user session: {}", username);
+
         String activeToken = getActiveAccessToken(username);
-        if (activeToken != null) {
-            String refreshToken = getRefreshTokenFromAccessToken(activeToken);
-            invalidateTokens(activeToken, refreshToken);
+        if (activeToken == null) {
+            log.warn("User {} has no active session", username);
+            return false;
         }
+
+        String refreshToken = getRefreshTokenFromAccessToken(activeToken);
+        if (refreshToken != null) {
+            invalidateTokens(activeToken, refreshToken);
+            log.info("Successfully kicked user: {}", username);
+            return true;
+        }
+
+        // Fallback: ลบเฉพาะ access token
+        invalidateTokens(activeToken, null);
+        log.info("Kicked user (no refresh token): {}", username);
+        return true;
     }
 
     public void invalidateAllUserTokens(String username) {
@@ -408,5 +426,112 @@ public class RedisTokenService {
         Set<String> keys = redisTemplate.keys(REFRESH_TOKEN_PREFIX + "*");
         log.debug("All refresh keys: {}", keys);
         return keys != null ? keys : Collections.emptySet();
+    }
+
+    // backend/src/main/java/com/example/auth/service/RedisTokenService.java
+
+// ==================== ADMIN MANAGEMENT ====================
+
+    /**
+     * ดึงข้อมูล sessions ทั้งหมดพร้อมรายละเอียด
+     */
+    public List<Map<String, Object>> getAllActiveSessionsWithDetails() {
+        Set<String> keys = redisTemplate.keys(USER_ACTIVE_TOKEN_PREFIX + "*");
+        List<Map<String, Object>> sessions = new ArrayList<>();
+
+        if (keys != null) {
+            for (String key : keys) {
+                String username = key.substring(USER_ACTIVE_TOKEN_PREFIX.length());
+                Map<String, Object> sessionInfo = getUserSessionInfo(username);
+
+                if (!sessionInfo.isEmpty() && Boolean.TRUE.equals(sessionInfo.get("hasActiveSession"))) {
+                    sessionInfo.put("username", username);
+
+                    // เพิ่มข้อมูลเพิ่มเติม
+                    String accessToken = getActiveAccessToken(username);
+                    sessionInfo.put("accessToken", maskToken(accessToken));
+                    sessionInfo.put("onlineTime", calculateOnlineTime((String) sessionInfo.get("loginTime")));
+
+                    sessions.add(sessionInfo);
+                }
+            }
+        }
+
+        // เรียงตาม lastActive ล่าสุด
+        sessions.sort((a, b) -> {
+            String dateA = (String) a.get("lastActive");
+            String dateB = (String) b.get("lastActive");
+            if (dateA == null || dateB == null) return 0;
+            return dateB.compareTo(dateA);
+        });
+
+        return sessions;
+    }
+
+    /**
+     * ดึงรายชื่อผู้ใช้ออนไลน์ทั้งหมด
+     */
+    public List<String> getAllActiveUsernames() {
+        Set<String> keys = redisTemplate.keys(USER_ACTIVE_TOKEN_PREFIX + "*");
+        List<String> usernames = new ArrayList<>();
+
+        if (keys != null) {
+            for (String key : keys) {
+                String username = key.substring(USER_ACTIVE_TOKEN_PREFIX.length());
+                usernames.add(username);
+            }
+        }
+        return usernames;
+    }
+
+    /**
+     * นับจำนวนผู้ใช้ออนไลน์
+     */
+    public int getTotalActiveSessions() {
+        Set<String> keys = redisTemplate.keys(USER_ACTIVE_TOKEN_PREFIX + "*");
+        return keys != null ? keys.size() : 0;
+    }
+
+    /**
+     * Kick user ทั้งหมดยกเว้นตัวเอง
+     */
+    public int kickAllUsersExcept(String currentUser) {
+        List<String> allUsers = getAllActiveUsernames();
+        int kickedCount = 0;
+
+        for (String username : allUsers) {
+            if (!username.equals(currentUser)) {
+                kickUserSession(username);
+                kickedCount++;
+                log.info("Admin kicked user: {}", username);
+            }
+        }
+
+        return kickedCount;
+    }
+
+    /**
+     * คำนวณเวลาที่ออนไลน์
+     */
+    private String calculateOnlineTime(String loginTimeStr) {
+        if (loginTimeStr == null) return "Unknown";
+        try {
+            LocalDateTime loginTime = LocalDateTime.parse(loginTimeStr);
+            LocalDateTime now = LocalDateTime.now();
+            Duration duration = Duration.between(loginTime, now);
+
+            long hours = duration.toHours();
+            long minutes = duration.toMinutesPart();
+
+            if (hours > 0) {
+                return hours + "h " + minutes + "m";
+            } else if (minutes > 0) {
+                return minutes + "m";
+            } else {
+                return "Just now";
+            }
+        } catch (Exception e) {
+            return "Unknown";
+        }
     }
 }

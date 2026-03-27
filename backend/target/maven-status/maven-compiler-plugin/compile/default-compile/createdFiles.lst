@@ -12,6 +12,7 @@ com\example\auth\dto\UserProfileResponse$UserProfileResponseBuilder.class
 com\example\auth\config\SecurityConfig.class
 com\example\auth\service\RedisTokenService.class
 com\example\auth\dto\RefreshResponse.class
+com\example\auth\controller\AdminController.class
 com\example\auth\controller\AuthController.class
 com\example\auth\entity\Role.class
 com\example\auth\AuthApplication.class
