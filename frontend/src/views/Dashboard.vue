@@ -42,10 +42,14 @@
         </div>
       </div>
 
-      <button v-if="authStore.isAdmin" @click="goToAdmin" class="admin-btn">
+      <button v-if="authStore.isAdmin" @click="goTo('admin')" class="admin-btn">
         👥 Admin Panel
       </button>
-      
+
+      <button v-if="authStore.isAdmin" @click="goTo('auditLog')" class="admin-btn">
+        👥 Audit Log
+      </button>
+
     </div>
   </div>
 </template>
@@ -65,9 +69,10 @@ const handleLogout = async () => {
   await authStore.logout()
 }
 
-const goToAdmin = () => {
-  router.push('/admin')
+const goTo = (path) => {
+  router.push('/'+ path)
 }
+
 
 const testRefresh = async () => {
   debugInfo.value = 'Testing refresh...\n'

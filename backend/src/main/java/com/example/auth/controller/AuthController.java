@@ -1,6 +1,7 @@
 package com.example.auth.controller;
 
 import com.example.auth.dto.*;
+import com.example.auth.service.AuditLogService;
 import com.example.auth.service.RedisTokenService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -12,9 +13,11 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,6 +33,7 @@ public class AuthController {
 
     private final AuthenticationManager authenticationManager;
     private final RedisTokenService tokenService;
+    private final AuditLogService auditLogService;
 
     // ==================== COOKIE CONSTANTS ====================
     private static final String ACCESS_TOKEN_COOKIE = "access_token";
@@ -49,18 +53,9 @@ public class AuthController {
     // ==================== AUTH ENDPOINTS ====================
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(
-            @RequestBody LoginRequest request,
-            HttpServletResponse response) {
-
+    public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request, HttpServletRequest httpRequest, HttpServletResponse response) {
         try {
-            Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(
-                            request.username(),
-                            request.password()
-                    )
-            );
-
+            Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.username(), request.password()));
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
 
             TokenPair tokenPair = tokenService.storeTokens(
@@ -73,6 +68,9 @@ public class AuthController {
             setAccessTokenCookie(response, tokenPair.accessToken());
             setRefreshTokenCookie(response, tokenPair.refreshToken());
 
+            // 🔥 บันทึก log login สำเร็จ
+            auditLogService.logLoginSuccess(userDetails.getUsername(), httpRequest);
+
             var roles = userDetails.getAuthorities().stream()
                     .map(GrantedAuthority::getAuthority)
                     .collect(Collectors.toList());
@@ -81,10 +79,18 @@ public class AuthController {
                     LoginResponse.success(userDetails.getUsername(), roles, ACCESS_TOKEN_MAX_AGE_SECONDS)
             );
 
-        } catch (Exception e) {
-            log.error("Login failed: {}", e.getMessage());
+        } catch (BadCredentialsException e) {
+            // ✅ บันทึก LOGIN_FAILED
+            auditLogService.logLoginFailed(request.username(), "Invalid credentials", httpRequest);
+
             return ResponseEntity.status(401)
                     .body(LoginResponse.failed("Invalid credentials"));
+        } catch (Exception e) {
+            // ✅ บันทึก LOGIN_FAILED อื่นๆ
+            auditLogService.logLoginFailed(request.username(), e.getMessage(), httpRequest);
+
+            return ResponseEntity.status(401)
+                    .body(LoginResponse.failed("Login failed"));
         }
     }
 
@@ -137,84 +143,40 @@ public class AuthController {
         return ResponseEntity.ok(RefreshResponse.success(ACCESS_TOKEN_MAX_AGE_SECONDS));
     }
 
+// backend/src/main/java/com/example/auth/controller/AuthController.java
+
     @PostMapping("/logout")
     public ResponseEntity<String> logout(
             HttpServletRequest request,
-            HttpServletResponse response) {
+            HttpServletResponse response,
+            @AuthenticationPrincipal UserDetails userDetails) {
 
-        String accessToken = extractTokenFromCookie(request, ACCESS_TOKEN_COOKIE);
-        String refreshToken = extractTokenFromCookie(request, REFRESH_TOKEN_COOKIE);
+        String accessToken = extractTokenFromCookie(request, "access_token");
+        String refreshToken = extractTokenFromCookie(request, "refresh_token");
 
         if (accessToken != null && refreshToken != null) {
             tokenService.invalidateTokens(accessToken, refreshToken);
         }
 
-        // Clear cookies from both paths
+        // ✅ บันทึก LOGOUT
+        if (userDetails != null) {
+            auditLogService.logLogout(userDetails.getUsername(), request);
+            log.info("User logged out: {}", userDetails.getUsername());
+        } else {
+            // ถ้าไม่มี userDetails ให้ลองดึงจาก token
+            if (accessToken != null) {
+                String username = tokenService.getUsernameFromAccessToken(accessToken);
+                if (username != null) {
+                    auditLogService.logLogout(username, request);
+                }
+            }
+        }
+
         clearAccessTokenCookie(response);
         clearRefreshTokenCookie(response);
 
         return ResponseEntity.ok("Logged out successfully");
     }
-//
-//    // ==================== COOKIE MANAGEMENT ====================
-//
-//    private void setAccessTokenCookie(HttpServletResponse response, String token) {
-//        ResponseCookie cookie = buildCookie(
-//                ACCESS_TOKEN_COOKIE,
-//                token,
-//                ACCESS_TOKEN_PATH,
-//                ACCESS_TOKEN_MAX_AGE_SECONDS
-//        );
-//        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
-//        log.debug("Set access_token cookie");
-//    }
-//
-//    private void setRefreshTokenCookie(HttpServletResponse response, String token) {
-//        ResponseCookie cookie = buildCookie(
-//                REFRESH_TOKEN_COOKIE,
-//                token,
-//                REFRESH_TOKEN_PATH,
-//                REFRESH_TOKEN_MAX_AGE_SECONDS
-//        );
-//        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
-//        log.debug("Set refresh_token cookie");
-//    }
-//
-//    private void clearAccessTokenCookie(HttpServletResponse response) {
-//        ResponseCookie cookie = buildCookie(
-//                ACCESS_TOKEN_COOKIE,
-//                "",
-//                ACCESS_TOKEN_PATH,
-//                0
-//        );
-//        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
-//        log.debug("Cleared access_token cookie");
-//    }
-//
-//    private void clearRefreshTokenCookie(HttpServletResponse response) {
-//        // Clear from refresh path
-//        ResponseCookie cookie1 = buildCookie(
-//                REFRESH_TOKEN_COOKIE,
-//                "",
-//                REFRESH_TOKEN_PATH,
-//                0
-//        );
-//        response.addHeader(HttpHeaders.SET_COOKIE, cookie1.toString());
-//
-//        // Also clear from root path as fallback
-//        ResponseCookie cookie2 = buildCookie(
-//                REFRESH_TOKEN_COOKIE,
-//                "",
-//                ACCESS_TOKEN_PATH,
-//                0
-//        );
-//        response.addHeader(HttpHeaders.SET_COOKIE, cookie2.toString());
-//
-//        log.debug("Cleared refresh_token cookie");
-//    }
-
-    // backend/src/main/java/com/example/auth/controller/AuthController.java
-
 
     private void setAccessTokenCookie(HttpServletResponse response, String token) {
         ResponseCookie cookie = ResponseCookie.from("access_token", token)

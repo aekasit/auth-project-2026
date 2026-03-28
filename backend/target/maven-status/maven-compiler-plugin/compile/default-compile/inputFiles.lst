@@ -2,6 +2,7 @@ C:\Users\aekasit.se\Desktop\auth-project-2026\backend\src\main\java\com\example\
 C:\Users\aekasit.se\Desktop\auth-project-2026\backend\src\main\java\com\example\auth\config\RedisConfig.java
 C:\Users\aekasit.se\Desktop\auth-project-2026\backend\src\main\java\com\example\auth\config\SecurityConfig.java
 C:\Users\aekasit.se\Desktop\auth-project-2026\backend\src\main\java\com\example\auth\controller\AdminController.java
+C:\Users\aekasit.se\Desktop\auth-project-2026\backend\src\main\java\com\example\auth\controller\AuditLogController.java
 C:\Users\aekasit.se\Desktop\auth-project-2026\backend\src\main\java\com\example\auth\controller\AuthController.java
 C:\Users\aekasit.se\Desktop\auth-project-2026\backend\src\main\java\com\example\auth\controller\UserController.java
 C:\Users\aekasit.se\Desktop\auth-project-2026\backend\src\main\java\com\example\auth\dto\LoginRequest.java
@@ -9,12 +10,15 @@ C:\Users\aekasit.se\Desktop\auth-project-2026\backend\src\main\java\com\example\
 C:\Users\aekasit.se\Desktop\auth-project-2026\backend\src\main\java\com\example\auth\dto\RefreshResponse.java
 C:\Users\aekasit.se\Desktop\auth-project-2026\backend\src\main\java\com\example\auth\dto\TokenPair.java
 C:\Users\aekasit.se\Desktop\auth-project-2026\backend\src\main\java\com\example\auth\dto\UserProfileResponse.java
+C:\Users\aekasit.se\Desktop\auth-project-2026\backend\src\main\java\com\example\auth\entity\AuditLog.java
 C:\Users\aekasit.se\Desktop\auth-project-2026\backend\src\main\java\com\example\auth\entity\Role.java
 C:\Users\aekasit.se\Desktop\auth-project-2026\backend\src\main\java\com\example\auth\entity\User.java
+C:\Users\aekasit.se\Desktop\auth-project-2026\backend\src\main\java\com\example\auth\repository\AuditLogRepository.java
 C:\Users\aekasit.se\Desktop\auth-project-2026\backend\src\main\java\com\example\auth\repository\RoleRepository.java
 C:\Users\aekasit.se\Desktop\auth-project-2026\backend\src\main\java\com\example\auth\repository\UserRepository.java
 C:\Users\aekasit.se\Desktop\auth-project-2026\backend\src\main\java\com\example\auth\security\CustomUserDetailsService.java
 C:\Users\aekasit.se\Desktop\auth-project-2026\backend\src\main\java\com\example\auth\security\JwtAuthenticationFilter.java
 C:\Users\aekasit.se\Desktop\auth-project-2026\backend\src\main\java\com\example\auth\security\JwtService.java
+C:\Users\aekasit.se\Desktop\auth-project-2026\backend\src\main\java\com\example\auth\service\AuditLogService.java
 C:\Users\aekasit.se\Desktop\auth-project-2026\backend\src\main\java\com\example\auth\service\RedisTokenService.java
 C:\Users\aekasit.se\Desktop\auth-project-2026\backend\src\main\java\com\example\auth\util\PasswordGenerator.java

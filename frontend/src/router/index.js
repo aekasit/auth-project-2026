@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import Admin from '@/views/Admin.vue'
+import AuditLog from '@/views/AuditLog.vue'
 
 const routes = [
   {
@@ -19,6 +20,12 @@ const routes = [
     path: '/admin',
     name: 'Admin',
     component: Admin,
+    meta: { requiresAuth: true, requiresAdmin: true }
+  },
+    {
+    path: '/auditLog',
+    name: 'AuditLog',
+    component: AuditLog,
     meta: { requiresAuth: true, requiresAdmin: true }
   },
   {
