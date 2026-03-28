@@ -2,6 +2,8 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/authStore'
 import Admin from '@/views/Admin.vue'
 import AuditLog from '@/views/AuditLog.vue'
+import ChangePassword from '@/views/ChangePassword.vue'
+import Profile from '@/views/Profile.vue'
 
 const routes = [
   {
@@ -26,6 +28,18 @@ const routes = [
     path: '/auditLog',
     name: 'AuditLog',
     component: AuditLog,
+    meta: { requiresAuth: true, requiresAdmin: true }
+  },
+      {
+    path: '/profile',
+    name: 'Profile',
+    component: Profile,
+    meta: { requiresAuth: true, requiresAdmin: true }
+  },
+      {
+    path: '/changePassword',
+    name: 'ChangePassword',
+    component: ChangePassword,
     meta: { requiresAuth: true, requiresAdmin: true }
   },
   {
