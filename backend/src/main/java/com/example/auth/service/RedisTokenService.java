@@ -3,6 +3,7 @@ package com.example.auth.service;
 import com.example.auth.dto.TokenPair;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -30,10 +31,17 @@ public class RedisTokenService {
     private static final String ACCESS_REFRESH_MAPPING = "auth:access:refresh:";
 
     // ==================== EXPIRATION CONSTANTS ====================
-    private static final long ACCESS_TOKEN_EXPIRATION_MINUTES = 15;
-    private static final long REFRESH_TOKEN_EXPIRATION_DAYS = 7;
+//    private static final long ACCESS_TOKEN_EXPIRATION_MINUTES = 15;
+//    private static final long REFRESH_TOKEN_EXPIRATION_DAYS = 7;
 
     // ==================== TOKEN STORAGE ====================
+
+    @Value("${jwt.access-token-expiration}")
+    private long accessTokenExpiration;
+
+    @Value("${jwt.refresh-token-expiration}")
+    private long refresTtokenExpiration;
+
 
     /**
      * Store both access and refresh tokens for a user
@@ -72,7 +80,7 @@ public class RedisTokenService {
         data.put("createdAt", LocalDateTime.now().toString());
 
         redisTemplate.opsForHash().putAll(key, data);
-        redisTemplate.expire(key, Duration.ofMinutes(ACCESS_TOKEN_EXPIRATION_MINUTES));
+        redisTemplate.expire(key, Duration.ofMinutes(accessTokenExpiration));
 
         log.debug("Access token stored: {}", maskToken(accessToken));
     }
@@ -92,12 +100,12 @@ public class RedisTokenService {
         data.put("createdAt", LocalDateTime.now().toString());
 
         redisTemplate.opsForHash().putAll(key, data);
-        redisTemplate.expire(key, Duration.ofDays(REFRESH_TOKEN_EXPIRATION_DAYS));
+        redisTemplate.expire(key, Duration.ofDays(refresTtokenExpiration));
 
         // Store mapping for quick lookup
         String mappingKey = ACCESS_REFRESH_MAPPING + accessToken;
         redisTemplate.opsForValue().set(mappingKey, refreshToken,
-                Duration.ofDays(REFRESH_TOKEN_EXPIRATION_DAYS));
+                Duration.ofDays(refresTtokenExpiration));
 
         log.debug("Refresh token stored: {}", maskToken(refreshToken));
     }
@@ -114,7 +122,7 @@ public class RedisTokenService {
         data.put("lastActive", LocalDateTime.now().toString());
 
         redisTemplate.opsForHash().putAll(key, data);
-        redisTemplate.expire(key, Duration.ofDays(REFRESH_TOKEN_EXPIRATION_DAYS));
+        redisTemplate.expire(key, Duration.ofDays(refresTtokenExpiration));
 
         log.debug("User session stored: {}", username);
     }
@@ -122,7 +130,7 @@ public class RedisTokenService {
     private void storeActiveToken(String username, String accessToken) {
         String key = USER_ACTIVE_TOKEN_PREFIX + username;
         redisTemplate.opsForValue().set(key, accessToken,
-                Duration.ofDays(REFRESH_TOKEN_EXPIRATION_DAYS));
+                Duration.ofDays(refresTtokenExpiration));
 
         log.debug("Active token stored for user: {}", username);
     }
@@ -279,19 +287,19 @@ public class RedisTokenService {
         String sessionKey = USER_SESSION_PREFIX + username;
         redisTemplate.opsForHash().put(sessionKey, "accessToken", newAccessToken);
         redisTemplate.opsForHash().put(sessionKey, "lastActive", LocalDateTime.now().toString());
-        redisTemplate.expire(sessionKey, Duration.ofDays(REFRESH_TOKEN_EXPIRATION_DAYS));
+        redisTemplate.expire(sessionKey, Duration.ofDays(refresTtokenExpiration));
 
         // Update active token
         redisTemplate.opsForValue().set(
                 USER_ACTIVE_TOKEN_PREFIX + username,
                 newAccessToken,
-                Duration.ofDays(REFRESH_TOKEN_EXPIRATION_DAYS)
+                Duration.ofDays(refresTtokenExpiration)
         );
 
         // Update mapping
         String mappingKey = ACCESS_REFRESH_MAPPING + newAccessToken;
         redisTemplate.opsForValue().set(mappingKey, refreshToken,
-                Duration.ofDays(REFRESH_TOKEN_EXPIRATION_DAYS));
+                Duration.ofDays(refresTtokenExpiration));
 
         // Delete old mapping (if exists)
         String oldAccessToken = (String) refreshData.get("accessToken");
@@ -366,7 +374,7 @@ public class RedisTokenService {
         if (username != null) {
             String key = USER_SESSION_PREFIX + username;
             redisTemplate.opsForHash().put(key, "lastActive", LocalDateTime.now().toString());
-            redisTemplate.expire(key, Duration.ofDays(REFRESH_TOKEN_EXPIRATION_DAYS));
+            redisTemplate.expire(key, Duration.ofDays(refresTtokenExpiration));
             log.debug("Updated last active for user: {}", username);
         }
     }

@@ -41,14 +41,20 @@ public class AuthController {
     private static final String ACCESS_TOKEN_PATH = "/";
 //    private static final String REFRESH_TOKEN_PATH = "/api/auth/refresh";
 
-    private static final long ACCESS_TOKEN_MAX_AGE_SECONDS = 15 * 60;      // 15 minutes
-    private static final long REFRESH_TOKEN_MAX_AGE_SECONDS = 7 * 24 * 60 * 60; // 7 days
+//    private static final long ACCESS_TOKEN_MAX_AGE_SECONDS = 15 * 60;      // 15 minutes
+//    private static final long REFRESH_TOKEN_MAX_AGE_SECONDS = 7 * 24 * 60 * 60; // 7 days
 
     @Value("${app.cookie.same-site}")
     private String sameSite;
 
     @Value("${app.cookie.secure}")
     private boolean secure;
+
+    @Value("${jwt.access-token-expiration}")
+    private long accessTokenExpiration;
+
+    @Value("${jwt.refresh-token-expiration}")
+    private long refresTtokenExpiration;
 
     // ==================== AUTH ENDPOINTS ====================
 
@@ -76,7 +82,7 @@ public class AuthController {
                     .collect(Collectors.toList());
 
             return ResponseEntity.ok(
-                    LoginResponse.success(userDetails.getUsername(), roles, ACCESS_TOKEN_MAX_AGE_SECONDS)
+                    LoginResponse.success(userDetails.getUsername(), roles, accessTokenExpiration)
             );
 
         } catch (BadCredentialsException e) {
@@ -140,7 +146,7 @@ public class AuthController {
 
         log.info("Refresh successful for user: {}", username);
 
-        return ResponseEntity.ok(RefreshResponse.success(ACCESS_TOKEN_MAX_AGE_SECONDS));
+        return ResponseEntity.ok(RefreshResponse.success(accessTokenExpiration));
     }
 
 // backend/src/main/java/com/example/auth/controller/AuthController.java
@@ -183,7 +189,7 @@ public class AuthController {
                 .httpOnly(true)
                 .secure(secure)                    // environment-based
                 .path(ACCESS_TOKEN_PATH)
-                .maxAge(Duration.ofSeconds(ACCESS_TOKEN_MAX_AGE_SECONDS))
+                .maxAge(Duration.ofSeconds(accessTokenExpiration))
                 .sameSite(sameSite)                // environment-based
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
@@ -194,7 +200,7 @@ public class AuthController {
                 .httpOnly(true)
                 .secure(secure)
                 .path(ACCESS_TOKEN_PATH)  // เฉพาะ path นี้
-                .maxAge(Duration.ofSeconds(REFRESH_TOKEN_MAX_AGE_SECONDS))
+                .maxAge(Duration.ofSeconds(refresTtokenExpiration))
                 .sameSite(sameSite)
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
