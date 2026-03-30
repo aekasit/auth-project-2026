@@ -23,6 +23,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -50,10 +52,10 @@ public class AuthController {
     @Value("${app.cookie.secure}")
     private boolean secure;
 
-    @Value("${jwt.access-token-expiration}")
+    @Value("${app.jwt.access-token-expiration}")
     private long accessTokenExpiration;
 
-    @Value("${jwt.refresh-token-expiration}")
+    @Value("${app.jwt.refresh-token-expiration}")
     private long refresTtokenExpiration;
 
     // ==================== AUTH ENDPOINTS ====================
@@ -182,6 +184,23 @@ public class AuthController {
         clearRefreshTokenCookie(response);
 
         return ResponseEntity.ok("Logged out successfully");
+    }
+
+    @GetMapping("/check")
+    public ResponseEntity<Map<String, Object>> checkSession(
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        Map<String, Object> response = new HashMap<>();
+
+        if (userDetails != null) {
+            response.put("authenticated", true);
+            response.put("username", userDetails.getUsername());
+            response.put("authorities", userDetails.getAuthorities());
+            return ResponseEntity.ok(response);
+        } else {
+            response.put("authenticated", false);
+            return ResponseEntity.status(401).body(response);
+        }
     }
 
     private void setAccessTokenCookie(HttpServletResponse response, String token) {

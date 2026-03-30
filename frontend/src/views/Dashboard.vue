@@ -30,7 +30,7 @@
         </router-link>
 
         <div v-if="authStore.isAdmin" class="nav-divider"></div>
-        
+
         <template v-if="authStore.isAdmin">
           <router-link to="/admin" class="nav-item" :class="{ active: currentRoute === 'admin' }">
             <i class="fas fa-users-cog"></i>
@@ -84,7 +84,7 @@
             <span class="user-name">{{ authStore.fullName || authStore.username }}</span>
             <i class="fas fa-chevron-down"></i>
           </div>
-          
+
           <!-- User Dropdown Menu -->
           <div class="dropdown-menu" v-if="showUserMenu">
             <router-link to="/profile" class="dropdown-item">
@@ -98,7 +98,7 @@
               <i class="fas fa-sign-out-alt"></i> Logout
             </button>
           </div>
-          
+
           <!-- Notification Dropdown -->
           <div class="dropdown-menu notifications" v-if="showNotifications">
             <div class="dropdown-header">Notifications</div>
@@ -315,6 +315,26 @@ const pageTitle = computed(() => {
   return titles[currentRoute.value] || 'Dashboard'
 })
 
+const checkSessionHealth = async () => {
+  try {
+    // เรียก API เล็กๆ เพื่อตรวจสอบ session
+    await api.get('/user/profile', { timeout: 5000 })
+    console.log('✅ Session healthy')
+  } catch (error) {
+    console.log('⚠️ Session check failed:', error.response?.status)
+
+    // ถ้าเป็น 401 หรือ 403 ให้ redirect
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      console.log('🔴 Session invalid, redirecting...')
+      authStore.clearAuthData()
+      router.push('/login')
+    }
+  }
+}
+
+// เริ่มตรวจสอบ session ทุก 30 วินาที
+let healthInterval = null
+
 // ==================== METHODS ====================
 const toggleSidebar = () => {
   sidebarCollapsed.value = !sidebarCollapsed.value
@@ -334,7 +354,7 @@ const openAvatarModal = () => {
 
 const fetchStats = async () => {
   if (!authStore.isAdmin) return
-  
+
   try {
     const sessionsRes = await api.get('/admin/sessions')
     stats.value.onlineUsers = sessionsRes.data?.length || 0
@@ -345,7 +365,7 @@ const fetchStats = async () => {
 
 const fetchRecentActivities = async () => {
   if (!authStore.isAdmin) return
-  
+
   try {
     const response = await api.get('/audit/logs', {
       params: { page: 0, size: 5 }
@@ -367,7 +387,7 @@ const formatTime = (date) => {
   const now = new Date()
   const then = new Date(date)
   const diff = Math.floor((now - then) / 1000 / 60)
-  
+
   if (diff < 1) return 'Just now'
   if (diff < 60) return `${diff} minutes ago`
   if (diff < 1440) return `${Math.floor(diff / 60)} hours ago`
@@ -424,19 +444,25 @@ onMounted(() => {
   if (!authStore.profile && authStore.isAuthenticated) {
     authStore.fetchUserProfile()
   }
-  
+
   // เฉพาะ Admin เท่านั้นที่เรียก API เพิ่มเติม
   if (authStore.isAdmin) {
     fetchStats()
     fetchRecentActivities()
   }
-  
+
   document.addEventListener('click', handleClickOutside)
+  healthInterval = setInterval(checkSessionHealth, 30000)
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
+  if (healthInterval) {
+    clearInterval(healthInterval)
+  }
 })
+
+
 </script>
 
 <style scoped>
@@ -468,7 +494,7 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .logo {
@@ -505,7 +531,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 1rem;
   padding: 0.75rem 1.5rem;
-  color: rgba(255,255,255,0.8);
+  color: rgba(255, 255, 255, 0.8);
   text-decoration: none;
   transition: all 0.3s;
   cursor: pointer;
@@ -516,7 +542,7 @@ onUnmounted(() => {
 }
 
 .nav-item:hover {
-  background: rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.1);
   color: white;
 }
 
@@ -533,7 +559,7 @@ onUnmounted(() => {
 
 .nav-divider {
   height: 1px;
-  background: rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.1);
   margin: 1rem 1.5rem;
 }
 
@@ -548,7 +574,7 @@ onUnmounted(() => {
 
 .sidebar-footer {
   padding: 1rem;
-  border-top: 1px solid rgba(255,255,255,0.1);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .user-info-mini {
@@ -591,7 +617,7 @@ onUnmounted(() => {
   transition: margin-left 0.3s ease;
 }
 
-.sidebar.collapsed ~ .main-content {
+.sidebar.collapsed~.main-content {
   margin-left: 80px;
 }
 
@@ -602,7 +628,7 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   position: sticky;
   top: 0;
   z-index: 99;
@@ -683,7 +709,7 @@ onUnmounted(() => {
   right: 0;
   background: white;
   border-radius: 0.5rem;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
   min-width: 200px;
   margin-top: 0.5rem;
   overflow: hidden;
@@ -773,13 +799,13 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 1rem;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   transition: transform 0.3s, box-shadow 0.3s;
 }
 
 .stat-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .stat-icon {
@@ -792,10 +818,25 @@ onUnmounted(() => {
   font-size: 1.5rem;
 }
 
-.stat-icon.blue { background: #e0f2fe; color: #0284c7; }
-.stat-icon.green { background: #dcfce7; color: #16a34a; }
-.stat-icon.purple { background: #f3e8ff; color: #9333ea; }
-.stat-icon.orange { background: #ffedd5; color: #ea580c; }
+.stat-icon.blue {
+  background: #e0f2fe;
+  color: #0284c7;
+}
+
+.stat-icon.green {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.stat-icon.purple {
+  background: #f3e8ff;
+  color: #9333ea;
+}
+
+.stat-icon.orange {
+  background: #ffedd5;
+  color: #ea580c;
+}
 
 .stat-info h3 {
   font-size: 0.875rem;
@@ -816,7 +857,7 @@ onUnmounted(() => {
   padding: 2rem;
   text-align: center;
   margin-bottom: 2rem;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .welcome-icon {
@@ -863,7 +904,7 @@ onUnmounted(() => {
   border-radius: 1rem;
   padding: 1.5rem;
   margin-bottom: 2rem;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .profile-header {
@@ -1001,7 +1042,9 @@ onUnmounted(() => {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Activity Card */
@@ -1009,7 +1052,7 @@ onUnmounted(() => {
   background: white;
   border-radius: 1rem;
   padding: 1.5rem;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .card-header {
@@ -1061,10 +1104,25 @@ onUnmounted(() => {
   font-size: 1rem;
 }
 
-.activity-icon.success { background: #dcfce7; color: #16a34a; }
-.activity-icon.danger { background: #fee2e2; color: #dc2626; }
-.activity-icon.info { background: #e0f2fe; color: #0284c7; }
-.activity-icon.warning { background: #ffedd5; color: #ea580c; }
+.activity-icon.success {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.activity-icon.danger {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.activity-icon.info {
+  background: #e0f2fe;
+  color: #0284c7;
+}
+
+.activity-icon.warning {
+  background: #ffedd5;
+  color: #ea580c;
+}
 
 .activity-details {
   flex: 1;
@@ -1092,28 +1150,28 @@ onUnmounted(() => {
     transform: translateX(-100%);
     position: fixed;
   }
-  
+
   .sidebar.open {
     transform: translateX(0);
   }
-  
+
   .main-content {
     margin-left: 0 !important;
   }
-  
+
   .stats-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .profile-header {
     flex-direction: column;
     text-align: center;
   }
-  
+
   .edit-profile-btn {
     margin-left: 0;
   }
-  
+
   .profile-details {
     grid-template-columns: 1fr;
   }

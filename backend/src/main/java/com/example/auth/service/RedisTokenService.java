@@ -36,10 +36,10 @@ public class RedisTokenService {
 
     // ==================== TOKEN STORAGE ====================
 
-    @Value("${jwt.access-token-expiration}")
+    @Value("${app.jwt.access-token-expiration}")
     private long accessTokenExpiration;
 
-    @Value("${jwt.refresh-token-expiration}")
+    @Value("${app.jwt.refresh-token-expiration}")
     private long refresTtokenExpiration;
 
 
