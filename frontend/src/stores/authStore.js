@@ -81,60 +81,112 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  // frontend/src/stores/authStore.js
+
+const fetchUserProfile = async (force = false) => {
+  // ถ้ามี profile แล้วและไม่ใช่ force ให้ข้าม
+  if (profile.value && !force) {
+    console.log('Profile already loaded, skipping...')
+    return profile.value
+  }
+  
+  // ถ้ากำลังโหลดอยู่ ให้ข้าม
+  if (profileLoading.value) {
+    console.log('Profile already loading, skipping...')
+    return null
+  }
+  
+  profileLoading.value = true
+  
+  try {
+    console.log('Fetching user profile...')
+    const response = await api.get('/user/profile')
+    
+    if (response.data) {
+      profile.value = response.data
+      profileFetched.value = true
+      console.log('Profile loaded:', profile.value)
+      return response.data
+    }
+  } catch (error) {
+    console.error('Failed to fetch profile:', error)
+    
+    // 🔥 ถ้า 403 หรือ 401 ให้ใช้ข้อมูล fallback
+    if (error.response?.status === 403 || error.response?.status === 401) {
+      console.log('Profile API not accessible, using fallback data')
+      
+      // ใช้ข้อมูลจาก user แทน
+      profile.value = {
+        fullName: user.value?.username,
+        email: '',
+        phone: '',
+        address: '',
+        createdAt: new Date().toISOString()
+      }
+      profileFetched.value = true
+      return profile.value
+    }
+    
+    return null
+  } finally {
+    profileLoading.value = false
+  }
+}
+
   /**
    * Fetch user profile from backend
    */
-  const fetchUserProfile = async (force = false) => {
-    // ถ้ามี profile แล้วและไม่ใช่ force ให้ข้าม
-    if (profile.value && !force) {
-      console.log('Profile already loaded, skipping...')
-      return profile.value
-    }
+  // const fetchUserProfile = async (force = false) => {
+  //   // ถ้ามี profile แล้วและไม่ใช่ force ให้ข้าม
+  //   if (profile.value && !force) {
+  //     console.log('Profile already loaded, skipping...')
+  //     return profile.value
+  //   }
 
-    // ถ้ากำลังโหลดอยู่ ให้ข้าม
-    if (profileLoading.value) {
-      console.log('Profile already loading, skipping...')
-      return null
-    }
+  //   // ถ้ากำลังโหลดอยู่ ให้ข้าม
+  //   if (profileLoading.value) {
+  //     console.log('Profile already loading, skipping...')
+  //     return null
+  //   }
 
-    profileLoading.value = true
+  //   profileLoading.value = true
 
-    try {
-      const response = await api.get('/user/profile')
-      if (response.data) {
-        profile.value = response.data
-        profileFetched.value = true
-        console.log('Profile loaded:', profile.value)
-        return response.data
-      }
-    } catch (error) {
-      console.error('Failed to fetch profile:', error)
+  //   try {
+  //     const response = await api.get('/user/profile')
+  //     if (response.data) {
+  //       profile.value = response.data
+  //       profileFetched.value = true
+  //       console.log('Profile loaded:', profile.value)
+  //       return response.data
+  //     }
+  //   } catch (error) {
+  //     console.error('Failed to fetch profile:', error)
 
-      // 403 หมายถึงไม่มีสิทธิ์ (อาจเป็น endpoint ยังไม่มี)
-      if (error.response?.status === 403) {
-        console.log('Profile endpoint not accessible, using fallback')
-        // ใช้ข้อมูล fallback
-        profile.value = {
-          fullName: user.value?.username,
-          email: '',
-          phone: '',
-          address: '',
-          createdAt: new Date().toISOString()
-        }
-        profileFetched.value = true
-        return profile.value
-      }
+  //     // 403 หมายถึงไม่มีสิทธิ์ (อาจเป็น endpoint ยังไม่มี)
+  //     if (error.response?.status === 403) {
+  //       console.log('Profile endpoint not accessible, using fallback')
+  //       // ใช้ข้อมูล fallback
+  //       profile.value = {
+  //         fullName: user.value?.username,
+  //         email: '',
+  //         phone: '',
+  //         address: '',
+  //         createdAt: new Date().toISOString()
+  //       }
+  //       profileFetched.value = true
+  //       return profile.value
+  //     }
 
-      // 401 หมายถึง session หมดอายุ
-      if (error.response?.status === 401) {
-        clearAuthData()
-        router.push('/login')
-      }
-      return null
-    } finally {
-      profileLoading.value = false
-    }
-  }
+  //     // 401 หมายถึง session หมดอายุ
+  //     if (error.response?.status === 401) {
+  //       clearAuthData()
+  //       router.push('/login')
+  //     }
+  //     return null
+  //   } finally {
+  //     profileLoading.value = false
+  //   }
+  // }
 
   /**
    * Update user profile
